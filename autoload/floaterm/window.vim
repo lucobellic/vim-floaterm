@@ -197,14 +197,19 @@ function! s:init_win(winid, is_border) abort
 endfunction
 
 " :currpos: the position of the floaterm which will be opened soon
-function! s:autohide(currpos) abort
+" :bufrn: the current buffer number
+function! s:autohide(currpos, bufnr) abort
   if g:floaterm_autohide == 2
-    " hide all other floaterms
-    call floaterm#hide(1, 0, '')
-  elseif g:floaterm_autohide == 1
-    " hide all other floaterms that will be overlaied by this one
     for bufnr in floaterm#buflist#gather()
-      if getbufvar(bufnr, 'floaterm_position') == a:currpos
+      " hide all other floaterms
+      if bufnr != a:bufnr
+        call floaterm#hide(0, bufnr, '')
+      endif
+    endfor
+  elseif g:floaterm_autohide == 1
+    for bufnr in floaterm#buflist#gather()
+    " hide all other floaterms that will be overlaied by this one
+      if bufnr != a:bufnr && getbufvar(bufnr, 'floaterm_position') == a:currpos
         call floaterm#hide(0, bufnr, '')
       endif
     endfor
@@ -220,8 +225,6 @@ function! floaterm#window#open(bufnr, config) abort
     return
   endif
 
-  call s:autohide(a:config.position)
-
   if exists('g:floaterm_openoverride') && type(g:floaterm_openoverride) == v:t_func
     let winid = call(g:floaterm_openoverride, [a:bufnr, a:config])
     call s:init_win(winid, v:false)
@@ -235,6 +238,9 @@ function! floaterm#window#open(bufnr, config) abort
       call s:open_popup(a:bufnr, a:config)
     endif
   endif
+
+  call s:autohide(a:config.position, a:bufnr)
+
 endfunction
 
 function! floaterm#window#hide(bufnr) abort
